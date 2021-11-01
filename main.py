@@ -4,12 +4,14 @@ import numpy as np
 from nltk import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk import SnowballStemmer
+# from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn import tree
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import GridSearchCV
 
 def read_data(main_dir):
     neg_dir = main_dir + "/negative_polarity"
@@ -58,6 +60,7 @@ def preprocessing(review):
     return [stemmer.stem(word) for word in tokenized_sentence if word.isalpha()]
 
 
+
 def build_vectorizer(ngram, min_df, max_df):
     return CountVectorizer(ngram_range=(1, ngram), min_df=min_df, max_df=max_df)
 
@@ -71,15 +74,48 @@ def ngrams_test(corpus, vectorizer):
 
 
 def logistic_regression():
+    # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
+    param_grid = [
+        {
+            'penalty' : ['l1', 'l2'],
+            'C' : [0.01, 0.05, 0.1],
+            'solver' : ['saga'],
+            'max_iter' : [100, 200]
+        }
+    ]
     return LogisticRegression(solver='saga', C=0.2, penalty='l2', max_iter=1000)
+    # return GridSearchCV(estimator=LogisticRegression(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
+
 
 
 def classification_tree():
+    # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
+    param_grid = [
+        {
+            'criterion' : ['gini', 'entropy'],
+            'max_depth' : np.arange(1, 101, 20).tolist(),
+            'min_samples_split' : np.arange(5, 31, 5).tolist(),
+            'min_samples_leaf' : np.arange(5, 56, 10).tolist()
+        }
+    ]
     return tree.DecisionTreeClassifier()
+    # return GridSearchCV(estimator = tree.DecisionTreeClassifier(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
 def random_forest():
+    # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
+    param_grid = [
+        {
+            'bootstrap' : [True],
+            'max_depth' : [20, 100],
+            'min_samples_split' : np.arange(5, 31, 5).tolist(),
+            'min_samples_leaf' : np.arange(5, 56, 10).tolist(),
+            'max_features' : [100, 1000, 10000],
+            'n_estimators' : [10, 50, 100]
+        }
+    ]
     return RandomForestClassifier()
+    # return GridSearchCV(estimator = RandomForestClassifier(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
 def multinomialNB():
@@ -107,6 +143,7 @@ def main():
     # Logistic Regression
     clf = logistic_regression()
     clf.fit(train_neg, labels_train)
+    # print("the best parameters for logistic regression are: {}".format(clf.best_params_))
     labels_pred = clf.predict(test_neg)
     print_scores("Logistic Regression", labels_test, labels_pred)
     print(f"--- Logistic Regression time {time.time() - start_time} seconds ---")
@@ -114,12 +151,14 @@ def main():
     start_time = time.time()
     clf = classification_tree()
     clf.fit(train_neg, labels_train)
+    # print("the best parameters for the classification tree are: {}".format(clf.best_params_))
     labels_pred = clf.predict(test_neg)
     print_scores("Classification tree", labels_test, labels_pred)
     print(f"--- Classification tree time {time.time() - start_time} seconds ---")
     # Random forest
     clf = random_forest()
     clf.fit(train_neg, labels_train)
+    # print("the best parameters for the random forest are: {}".format(clf.best_params_))
     labels_pred = clf.predict(test_neg)
     print_scores("Random Forest", labels_test, labels_pred)
     print(f"--- Random Forest time {time.time() - start_time} seconds ---")
