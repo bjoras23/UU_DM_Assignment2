@@ -35,17 +35,19 @@ def read_dir(main_dir):
     train_reviews = []
     test_reviews = []
     for fold in os.listdir(main_dir):
-        if "5" in fold:
-            l = test_reviews
-        else:
-            l = train_reviews
-        fold = os.path.join(main_dir, fold)
-        for review_path in os.listdir(fold):
-            review_path = os.path.join(fold, review_path)
-            f = open(review_path, "r")
-            processed_review = preprocessing(f.read()[:-1])
-            l.append(' '.join(processed_review))
-            f.close()
+        # .DS_Store causes issues on MacOS
+        if not ".DS_Store" in fold:
+            if "5" in fold:
+                l = test_reviews
+            else:
+                l = train_reviews
+            fold = os.path.join(main_dir, fold)
+            for review_path in os.listdir(fold):
+                review_path = os.path.join(fold, review_path)
+                f = open(review_path, "r")
+                processed_review = preprocessing(f.read()[:-1])
+                l.append(' '.join(processed_review))
+                f.close()
     return np.array(train_reviews), np.array(test_reviews)
 
 
