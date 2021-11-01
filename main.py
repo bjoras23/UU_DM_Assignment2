@@ -9,6 +9,7 @@ from sklearn import tree
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import GridSearchCV
 
 
 def read_data(main_dir):
@@ -63,27 +64,60 @@ def ngrams_test(corpus, vectorizer):
 
 
 def logistic_regression():
+    # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
+    param_grid = [
+        {
+            'penalty': ['l1', 'l2'],
+            'C': [0.01, 0.05, 0.1],
+            'solver': ['saga'],
+            'max_iter': [100, 200]
+        }
+    ]
     return LogisticRegression(solver='saga', C=0.2, penalty='l2', max_iter=1000)
+    # return GridSearchCV(estimator=LogisticRegression(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
 def classification_tree():
+    # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
+    param_grid = [
+        {
+            'criterion': ['gini', 'entropy'],
+            'max_depth': np.arange(1, 101, 20).tolist(),
+            'min_samples_split': np.arange(5, 31, 5).tolist(),
+            'min_samples_leaf': np.arange(5, 56, 10).tolist()
+        }
+    ]
     return tree.DecisionTreeClassifier()
+    # return GridSearchCV(estimator = tree.DecisionTreeClassifier(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
 def random_forest():
+    # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
+    param_grid = [
+        {
+            'bootstrap': [True],
+            'max_depth': [20, 100],
+            'min_samples_split': np.arange(5, 31, 5).tolist(),
+            'min_samples_leaf': np.arange(5, 56, 10).tolist(),
+            'max_features': [100, 1000, 10000],
+            'n_estimators': [10, 50, 100]
+        }
+    ]
     return RandomForestClassifier()
+    # return GridSearchCV(estimator = RandomForestClassifier(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
 def multinomial_NB():
     return MultinomialNB()
 
 
-def print_scores(clf_name, y_test, y_pred, start_time):
+def print_scores(clf_name, y_test, y_pred, start_time, clf_best_params=""):
     print(f"{clf_name} scores\n"
           f" - accuracy = {accuracy_score(y_test, y_pred)}\n"
           f" - precision = {precision_score(y_test, y_pred)}\n"
           f" - recall = {recall_score(y_test, y_pred)} \n"
           f" - F1-score = {f1_score(y_test, y_pred)}\n"
+          f"The best parameters for logistic regression are: {clf_best_params}"
           f"--- {clf_name} time {time.time() - start_time} seconds ---")
 
 
@@ -93,6 +127,7 @@ def classify(clf_function, x_train, y_train, x_test, y_test):
     clf.fit(x_train, y_train)
     labels_pred = clf.predict(x_test)
     print_scores(clf_function.__name__, y_test, labels_pred, start_time)
+    # print_scores(clf_function.__name__, y_test, labels_pred, start_time, clf.best_params_)
 
 
 def main():
