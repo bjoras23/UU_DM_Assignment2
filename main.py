@@ -2,7 +2,6 @@ import os
 import time
 import numpy as np
 from nltk import word_tokenize
-from nltk.stem import WordNetLemmatizer
 from nltk import SnowballStemmer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -11,32 +10,26 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
 
+
 def read_data(main_dir):
     neg_dir = main_dir + "/negative_polarity"
     neg_dec_dir = neg_dir + "/deceptive_from_MTurk"
     neg_truth_dir = neg_dir + "/truthful_from_Web"
-    pos_dir = main_dir + "/positive_polarity"
-    pos_dec_dir = pos_dir + "/deceptive_from_MTurk"
-    pos_truth_dir = pos_dir + "/truthful_from_TripAdvisor"
     train_neg_dec, test_neg_dec = read_dir(neg_dec_dir)
     train_neg_truth, test_neg_truth = read_dir(neg_truth_dir)
-    train_pos_dec, test_pos_dec = read_dir(pos_dec_dir)
-    train_pos_truth, test_pos_truth = read_dir(pos_truth_dir)
     train_neg = np.append(train_neg_dec, train_neg_truth)
     test_neg = np.append(test_neg_dec, test_neg_truth)
-    train_pos = np.append(train_pos_dec, train_pos_truth)
-    test_pos = np.append(test_pos_dec, test_pos_truth)
     labels_train = np.append(np.zeros((320,), dtype=int), np.ones((320,), dtype=int))
     labels_test = np.append(np.zeros((80,), dtype=int), np.ones((80,), dtype=int))
-    return train_neg, test_neg, train_pos, test_pos, labels_train, labels_test
+    return train_neg, labels_train, test_neg, labels_test
 
 
 def read_dir(main_dir):
     train_reviews = []
     test_reviews = []
     for fold in os.listdir(main_dir):
-        # .DS_Store causes issues on MacOS
-        if not ".DS_Store" in fold:
+        # ignore hidden files
+        if not fold.startswith('.'):
             if "5" in fold:
                 l = test_reviews
             else:
@@ -52,7 +45,6 @@ def read_dir(main_dir):
 
 
 def preprocessing(review):
-    lemmatizer = WordNetLemmatizer()
     stemmer = SnowballStemmer("english")
     tokenized_sentence = word_tokenize(review)
     return [stemmer.stem(word) for word in tokenized_sentence if word.isalpha()]
@@ -82,53 +74,42 @@ def random_forest():
     return RandomForestClassifier()
 
 
-def multinomialNB():
+def multinomial_NB():
     return MultinomialNB()
 
 
-def print_scores(clf_name, y_test, y_pred):
+def print_scores(clf_name, y_test, y_pred, start_time):
     print(f"{clf_name} scores\n"
           f" - accuracy = {accuracy_score(y_test, y_pred)}\n"
           f" - precision = {precision_score(y_test, y_pred)}\n"
           f" - recall = {recall_score(y_test, y_pred)} \n"
-          f" - F1-score = {f1_score(y_test, y_pred)}")
+          f" - F1-score = {f1_score(y_test, y_pred)}\n"
+          f"--- {clf_name} time {time.time() - start_time} seconds ---")
+
+
+def classify(clf_function, x_train, y_train, x_test, y_test):
+    start_time = time.time()
+    clf = clf_function()
+    clf.fit(x_train, y_train)
+    labels_pred = clf.predict(x_test)
+    print_scores(clf_function.__name__, y_test, labels_pred, start_time)
 
 
 def main():
     start_time = time.time()
-    train_neg, test_neg, train_pos, test_pos, labels_train, labels_test = read_data("./op_spam_v1.4")
+    x_train, y_train, x_test, y_test = read_data("./op_spam_v1.4")
     vectorizer = build_vectorizer(2, 0, 0.9)
-    train_neg = ngrams_train(train_neg, vectorizer)
-    test_neg = ngrams_test(test_neg, vectorizer)
-    train_pos = ngrams_train(train_pos, vectorizer)
-    test_pos = ngrams_test(test_pos, vectorizer)
+    x_train = ngrams_train(x_train, vectorizer)
+    x_test = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
-    start_time = time.time()
     # Logistic Regression
-    clf = logistic_regression()
-    clf.fit(train_neg, labels_train)
-    labels_pred = clf.predict(test_neg)
-    print_scores("Logistic Regression", labels_test, labels_pred)
-    print(f"--- Logistic Regression time {time.time() - start_time} seconds ---")
+    classify(logistic_regression, x_train, y_train, x_test, y_test)
     # Classification tree
-    start_time = time.time()
-    clf = classification_tree()
-    clf.fit(train_neg, labels_train)
-    labels_pred = clf.predict(test_neg)
-    print_scores("Classification tree", labels_test, labels_pred)
-    print(f"--- Classification tree time {time.time() - start_time} seconds ---")
+    classify(classification_tree, x_train, y_train, x_test, y_test)
     # Random forest
-    clf = random_forest()
-    clf.fit(train_neg, labels_train)
-    labels_pred = clf.predict(test_neg)
-    print_scores("Random Forest", labels_test, labels_pred)
-    print(f"--- Random Forest time {time.time() - start_time} seconds ---")
+    classify(random_forest, x_train, y_train, x_test, y_test)
     # Multinomial Naive Bayes
-    clf = random_forest()
-    clf.fit(train_neg, labels_train)
-    labels_pred = clf.predict(test_neg)
-    print_scores("Multinomial Naive Bayes", labels_test, labels_pred)
-    print(f"--- Multinomial Naive Bayes time {time.time() - start_time} seconds ---")
+    classify(multinomial_NB, x_train, y_train, x_test, y_test)
 
 
 if __name__ == "__main__":
