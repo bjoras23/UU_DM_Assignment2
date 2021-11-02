@@ -82,9 +82,9 @@ def classification_tree():
     param_grid = [
         {
             'criterion': ['gini', 'entropy'],
-            'max_depth': np.arange(1, 101, 20).tolist(),
-            'min_samples_split': np.arange(5, 31, 5).tolist(),
-            'min_samples_leaf': np.arange(5, 56, 10).tolist()
+            'min_samples_leaf': np.arange(0, 40, 2).tolist(),
+            'min_samples_split': np.arange(0, 80, 2).tolist(),
+            'ccp_alpha': np.arange(0, 1, 0.1).tolist()
         }
     ]
     return tree.DecisionTreeClassifier(criterion = 'entropy', min_samples_leaf = 10, ccp_alpha = 0)
@@ -127,7 +127,30 @@ def print_scores(clf_name, y_test, y_pred, start_time, clf_best_params=""):
           f" - recall = {recall_score(y_test, y_pred)} \n"
           f" - F1-score = {f1_score(y_test, y_pred)}\n"
           f"The best parameters for {clf_name} are: {clf_best_params}\n"
-          f"--- {clf_name} time {time.time() - start_time} seconds ---")
+          f"--- {clf_name} time {time.time() - start_time} seconds ---\n")
+
+
+def get_best_features(coefficients, vocab, comparator):
+    best_features_score = [0, 0, 0, 0, 0]
+    best_features_indexes = [-1, -1, -1, -1, -1]
+    len_coef = len(coefficients)
+    len_best = len(best_features_score)
+    for i in range(0, len_coef):
+        c = coefficients[i]
+        if comparator(c, best_features_score[0]):
+            index = 5
+            for j in range(1, len_best):
+                if not comparator(c, best_features_score[j]):
+                    index = j
+                    break
+            best_features_score.insert(index, c)
+            best_features_score.pop(0)
+            best_features_indexes.insert(index, i)
+            best_features_indexes.pop(0)
+
+    print(best_features_score)
+    reverse_dict = {v: k for k, v in vocab.items()}
+    print([reverse_dict[i] for i in best_features_indexes])
 
 
 def classify(clf_function, x_train, y_train, x_test, y_test):
@@ -138,7 +161,7 @@ def classify(clf_function, x_train, y_train, x_test, y_test):
     correctness = list(map(lambda xy: 1 if xy[0]==xy[1] else 0, zip(y_test, labels_pred)))
     print_scores(clf_function.__name__, y_test, labels_pred, start_time)
     # print_scores(clf_function.__name__, y_test, labels_pred, start_time, clf.best_params_)
-    return correctness
+    return correctness, clf
 
 
 def confusion_matrix(a, b):
@@ -176,13 +199,13 @@ def main():
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
     # Multinomial Naive Bayes
     x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train, y_train, x_test, 2000)
-    correctness_naive_bayes = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
+    correctness_naive_bayes, _ = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
     # Logistic Regression
-    correctness_logistic = classify(logistic_regression, x_train, y_train, x_test, y_test)
+    correctness_logistic, clf_log = classify(logistic_regression, x_train, y_train, x_test, y_test)
     # Classification tree
-    correctness_tree = classify(classification_tree, x_train, y_train, x_test, y_test)
+    correctness_tree, _ = classify(classification_tree, x_train, y_train, x_test, y_test)
     # Random forest
-    correctness_forest = classify(random_forest, x_train, y_train, x_test, y_test)
+    correctness_forest, _ = classify(random_forest, x_train, y_train, x_test, y_test)
 
     print("---  naive bayes vs logistic  ---")
     confusion_matrix(correctness_naive_bayes, correctness_logistic)
@@ -190,7 +213,9 @@ def main():
     confusion_matrix(correctness_forest, correctness_logistic)
     print("---  forest vs naive bayes ---")
     confusion_matrix(correctness_forest, correctness_naive_bayes)
-
+    print("---  best features ---")
+    get_best_features(clf_log.coef_[0], vectorizer.vocabulary_, float.__lt__)
+    get_best_features(clf_log.coef_[0], vectorizer.vocabulary_, float.__gt__)
 
 if __name__ == "__main__":
     main()
