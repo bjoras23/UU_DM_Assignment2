@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import GridSearchCV
+from sklearn.feature_selection import mutual_info_classif
 
 
 def read_data(main_dir):
@@ -62,7 +63,6 @@ def ngrams_train(corpus, vectorizer):
 def ngrams_test(corpus, vectorizer):
     return vectorizer.transform(corpus)
 
-
 def logistic_regression():
     # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
     param_grid = [
@@ -87,7 +87,7 @@ def classification_tree():
             'min_samples_leaf': np.arange(5, 56, 10).tolist()
         }
     ]
-    return tree.DecisionTreeClassifier()
+    return tree.DecisionTreeClassifier(criterion = 'entropy', min_samples_leaf = 10, ccp_alpha = 0)
     # return GridSearchCV(estimator = tree.DecisionTreeClassifier(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
@@ -95,20 +95,29 @@ def random_forest():
     # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
     param_grid = [
         {
-            'bootstrap': [True],
-            'max_depth': [20, 100],
-            'min_samples_split': np.arange(5, 31, 5).tolist(),
-            'min_samples_leaf': np.arange(5, 56, 10).tolist(),
-            'max_features': [100, 1000, 10000],
-            'n_estimators': [10, 50, 100]
+            'bootstrap' : [True],
+            # nmin
+            'min_samples_split' : np.arange(10,51,10).tolist(),
+            # minleaf
+            'min_samples_leaf' : np.arange(5, 26, 5).tolist(),
+            # nfeat
+            'max_features' : [50, 187, 750, 3000, 12000, 48000],
+            # m
+            'n_estimators' : [100]
         }
     ]
-    return RandomForestClassifier()
+    return RandomForestClassifier(bootstrap=True, max_features=750, min_samples_leaf=5, min_samples_split=40, n_estimators=100)
     # return GridSearchCV(estimator = RandomForestClassifier(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
 def multinomial_NB():
     return MultinomialNB()
+
+def adapt_dataset_to_top_k(x_train, y_train, x_test, k):
+    # do top k approach with mutual information
+    mutual_information_array = mutual_info_classif(x_train, y_train)
+    top_k_feature_indices = np.argpartition(mutual_information_array, -k)[-k:]
+    return x_train.todense()[:, top_k_feature_indices], x_test.todense()[:, top_k_feature_indices]
 
 
 def print_scores(clf_name, y_test, y_pred, start_time, clf_best_params=""):
@@ -117,7 +126,7 @@ def print_scores(clf_name, y_test, y_pred, start_time, clf_best_params=""):
           f" - precision = {precision_score(y_test, y_pred)}\n"
           f" - recall = {recall_score(y_test, y_pred)} \n"
           f" - F1-score = {f1_score(y_test, y_pred)}\n"
-          f"The best parameters for {clf_name} are: {clf_best_params}"
+          f"The best parameters for {clf_name} are: {clf_best_params}\n"
           f"--- {clf_name} time {time.time() - start_time} seconds ---")
 
 
@@ -166,16 +175,17 @@ def main():
     x_test = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
     # Multinomial Naive Bayes
-    correctness_naive_bayes = classify(multinomial_NB, x_train, y_train, x_test, y_test)
+    x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train, y_train, x_test, 2000)
+    correctness_naive_bayes = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
     # Logistic Regression
     correctness_logistic = classify(logistic_regression, x_train, y_train, x_test, y_test)
-    print("---  naive bayes vs logistic  ---")
-    confusion_matrix(correctness_naive_bayes, correctness_logistic)
-
     # Classification tree
     correctness_tree = classify(classification_tree, x_train, y_train, x_test, y_test)
     # Random forest
     correctness_forest = classify(random_forest, x_train, y_train, x_test, y_test)
+
+    print("---  naive bayes vs logistic  ---")
+    confusion_matrix(correctness_naive_bayes, correctness_logistic)
     print("---  forest vs logistic  ---")
     confusion_matrix(correctness_forest, correctness_logistic)
     print("---  forest vs naive bayes ---")
