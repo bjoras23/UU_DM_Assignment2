@@ -67,13 +67,13 @@ def logistic_regression():
     # perform hyperparameter tuning by k-fold cross validation; values completely random yet!!!
     param_grid = [
         {
-            'penalty': ['l1', 'l2'],
-            'C': [0.01, 0.05, 0.1],
+            'penalty': ['l2'],
+            'C': [0.15, 0.2, 0.25, 0.3, 0.35],
             'solver': ['saga'],
-            'max_iter': [100, 200]
+            'max_iter': [1000, 1500]
         }
     ]
-    return LogisticRegression(solver='saga', C=0.2, penalty='l2', max_iter=1000)
+    return LogisticRegression(solver='saga', C=0.3, penalty='l2', max_iter=1000)
     # return GridSearchCV(estimator=LogisticRegression(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
