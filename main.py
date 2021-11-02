@@ -117,7 +117,7 @@ def print_scores(clf_name, y_test, y_pred, start_time, clf_best_params=""):
           f" - precision = {precision_score(y_test, y_pred)}\n"
           f" - recall = {recall_score(y_test, y_pred)} \n"
           f" - F1-score = {f1_score(y_test, y_pred)}\n"
-          f"The best parameters for logistic regression are: {clf_best_params}"
+          f"The best parameters for {clf_name} are: {clf_best_params}"
           f"--- {clf_name} time {time.time() - start_time} seconds ---")
 
 
@@ -126,8 +126,36 @@ def classify(clf_function, x_train, y_train, x_test, y_test):
     clf = clf_function()
     clf.fit(x_train, y_train)
     labels_pred = clf.predict(x_test)
+    correctness = list(map(lambda xy: 1 if xy[0]==xy[1] else 0, zip(y_test, labels_pred)))
     print_scores(clf_function.__name__, y_test, labels_pred, start_time)
     # print_scores(clf_function.__name__, y_test, labels_pred, start_time, clf.best_params_)
+    return correctness
+
+
+def confusion_matrix(a, b):
+    ab, TN, a_, b_ = 0, 0, 0, 0
+    for i in range(len(a)):
+        if a[i] == 1:
+            # Positive
+            if b[i] == 1:
+                ab += 1
+            else:
+                a_ += 1
+        else:
+            # Negative
+            if b[i] == 1:
+                b_ += 1
+            else:
+                TN += 1
+    # accuracy = (ab + TN) / N
+    # print(f'accuracy = {accuracy}')
+    # precision = ab / (ab + a_)
+    # print(f'precision = {precision}')
+    # recall = ab / (ab + b_)
+    # print(f'recall = {recall}')
+    print(f'Confusion matrix')
+    print(f'ab: {ab}     a_: {a_}')
+    print(f'b_: {b_}     TN: {TN}')
 
 
 def main():
@@ -137,14 +165,21 @@ def main():
     x_train = ngrams_train(x_train, vectorizer)
     x_test = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
-    # Logistic Regression
-    classify(logistic_regression, x_train, y_train, x_test, y_test)
-    # Classification tree
-    classify(classification_tree, x_train, y_train, x_test, y_test)
-    # Random forest
-    classify(random_forest, x_train, y_train, x_test, y_test)
     # Multinomial Naive Bayes
-    classify(multinomial_NB, x_train, y_train, x_test, y_test)
+    correctness_naive_bayes = classify(multinomial_NB, x_train, y_train, x_test, y_test)
+    # Logistic Regression
+    correctness_logistic = classify(logistic_regression, x_train, y_train, x_test, y_test)
+    print("---  naive bayes vs logistic  ---")
+    confusion_matrix(correctness_naive_bayes, correctness_logistic)
+
+    # Classification tree
+    correctness_tree = classify(classification_tree, x_train, y_train, x_test, y_test)
+    # Random forest
+    correctness_forest = classify(random_forest, x_train, y_train, x_test, y_test)
+    print("---  forest vs logistic  ---")
+    confusion_matrix(correctness_forest, correctness_logistic)
+    print("---  forest vs naive bayes ---")
+    confusion_matrix(correctness_forest, correctness_naive_bayes)
 
 
 if __name__ == "__main__":
