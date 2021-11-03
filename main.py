@@ -106,7 +106,7 @@ def random_forest():
             'n_estimators' : [100]
         }
     ]
-    return RandomForestClassifier(bootstrap=True, max_features=750, min_samples_leaf=5, min_samples_split=40, n_estimators=100)
+    return RandomForestClassifier(bootstrap=True, max_features=750, min_samples_leaf=5, min_samples_split=40, n_estimators=750)
     # return GridSearchCV(estimator = RandomForestClassifier(), param_grid = param_grid, n_jobs = -1, cv = 10, verbose = 3)
 
 
