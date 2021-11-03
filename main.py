@@ -141,9 +141,8 @@ def classify(clf_function, x_train, y_train, x_test, y_test):
     # print_scores(clf_function.__name__, y_test, labels_pred, start_time, clf.best_params_)
     return correctness
 
-def classify_return_f1(clf_function, x_train, y_train, x_test, y_test):
+def classify_return_f1(clf, x_train, y_train, x_test, y_test):
     start_time = time.time()
-    clf = clf_function()
     clf.fit(x_train, y_train)
     labels_pred = clf.predict(x_test)
     return f1_score(y_test, labels_pred)
@@ -199,18 +198,17 @@ def main():
     # print("---  forest vs naive bayes ---")
     # confusion_matrix(correctness_forest, correctness_naive_bayes)
     f1_scores = []
-    rounded_ks = []
-    mutual_information_array = mutual_info_classif(x_train, y_train)
-    ks = np.linspace(start=10, stop=48000, endpoint=True, num=50).tolist()
-    for k in ks:
-        k = int(k)
-        rounded_ks.append(k)
-        top_k_feature_indices = np.argpartition(mutual_information_array, -k)[-k:]
-        x_train_nb, x_test_nb = x_train.todense()[:, top_k_feature_indices], x_test.todense()[:, top_k_feature_indices]
-        print(f"for k = {k}:")
-        f1_scores.append(classify_return_f1(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test))
-    plt.plot(rounded_ks, f1_scores)
-    plt.xlabel("k")
+    size_of_forest = []
+    ns = np.logspace(start=1, stop=4, base=10, endpoint=True, num=25).tolist()
+    for n in ns:
+        n = int(n)
+        size_of_forest.append(n)
+        forest = random_forest()
+        forest.n_estimators = n
+        f1_scores.append(classify_return_f1(forest, x_train, y_train, x_test, y_test))
+        print(f"n: {n}")
+    plt.plot(size_of_forest, f1_scores)
+    plt.xlabel("number of trees in random forest")
     plt.ylabel("f1 score for NB")
     plt.show()
 
