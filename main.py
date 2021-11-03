@@ -175,7 +175,7 @@ def main():
     x_test = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
     # Multinomial Naive Bayes
-    x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train, y_train, x_test, 2000)
+    x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train, y_train, x_test, 12000)
     correctness_naive_bayes = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
     # Logistic Regression
     correctness_logistic = classify(logistic_regression, x_train, y_train, x_test, y_test)
