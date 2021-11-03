@@ -11,6 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import GridSearchCV
 from sklearn.feature_selection import mutual_info_classif
+import matplotlib.pyplot as plt
 
 
 def read_data(main_dir):
@@ -140,6 +141,13 @@ def classify(clf_function, x_train, y_train, x_test, y_test):
     # print_scores(clf_function.__name__, y_test, labels_pred, start_time, clf.best_params_)
     return correctness
 
+def classify_return_f1(clf_function, x_train, y_train, x_test, y_test):
+    start_time = time.time()
+    clf = clf_function()
+    clf.fit(x_train, y_train)
+    labels_pred = clf.predict(x_test)
+    return f1_score(y_test, labels_pred)
+
 
 def confusion_matrix(a, b):
     ab, TN, a_, b_ = 0, 0, 0, 0
@@ -174,22 +182,37 @@ def main():
     x_train = ngrams_train(x_train, vectorizer)
     x_test = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
-    # Multinomial Naive Bayes
-    x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train, y_train, x_test, 2000)
-    correctness_naive_bayes = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
-    # Logistic Regression
-    correctness_logistic = classify(logistic_regression, x_train, y_train, x_test, y_test)
-    # Classification tree
-    correctness_tree = classify(classification_tree, x_train, y_train, x_test, y_test)
-    # Random forest
-    correctness_forest = classify(random_forest, x_train, y_train, x_test, y_test)
+    # # Multinomial Naive Bayes
+    # x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train, y_train, x_test, 2000)
+    # correctness_naive_bayes = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
+    # # Logistic Regression
+    # correctness_logistic = classify(logistic_regression, x_train, y_train, x_test, y_test)
+    # # Classification tree
+    # correctness_tree = classify(classification_tree, x_train, y_train, x_test, y_test)
+    # # Random forest
+    # correctness_forest = classify(random_forest, x_train, y_train, x_test, y_test)
 
-    print("---  naive bayes vs logistic  ---")
-    confusion_matrix(correctness_naive_bayes, correctness_logistic)
-    print("---  forest vs logistic  ---")
-    confusion_matrix(correctness_forest, correctness_logistic)
-    print("---  forest vs naive bayes ---")
-    confusion_matrix(correctness_forest, correctness_naive_bayes)
+    # print("---  naive bayes vs logistic  ---")
+    # confusion_matrix(correctness_naive_bayes, correctness_logistic)
+    # print("---  forest vs logistic  ---")
+    # confusion_matrix(correctness_forest, correctness_logistic)
+    # print("---  forest vs naive bayes ---")
+    # confusion_matrix(correctness_forest, correctness_naive_bayes)
+    f1_scores = []
+    rounded_ks = []
+    mutual_information_array = mutual_info_classif(x_train, y_train)
+    ks = np.linspace(start=10, stop=48000, endpoint=True, num=50).tolist()
+    for k in ks:
+        k = int(k)
+        rounded_ks.append(k)
+        top_k_feature_indices = np.argpartition(mutual_information_array, -k)[-k:]
+        x_train_nb, x_test_nb = x_train.todense()[:, top_k_feature_indices], x_test.todense()[:, top_k_feature_indices]
+        print(f"for k = {k}:")
+        f1_scores.append(classify_return_f1(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test))
+    plt.plot(rounded_ks, f1_scores)
+    plt.xlabel("k")
+    plt.ylabel("f1 score for NB")
+    plt.show()
 
 
 if __name__ == "__main__":
