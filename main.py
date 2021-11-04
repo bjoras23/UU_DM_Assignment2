@@ -178,8 +178,9 @@ def confusion_matrix(a, b):
 def main():
     start_time = time.time()
     x_train, y_train, x_test, y_test = read_data("./op_spam_v1.4")
-    vectorizer = build_vectorizer(2, 0, 0.9)
+    vectorizer = build_vectorizer(1, 0, 0.9)
     x_train = ngrams_train(x_train, vectorizer)
+    # total number of features is 4637
     x_test = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
     # # Multinomial Naive Bayes
@@ -201,7 +202,7 @@ def main():
     f1_scores = []
     rounded_ks = []
     mutual_information_array = mutual_info_classif(x_train, y_train)
-    ks = np.linspace(start=10, stop=48000, endpoint=True, num=50).tolist()
+    ks = np.linspace(start=10, stop=4637, endpoint=True, num=100).tolist()
     for k in ks:
         k = int(k)
         rounded_ks.append(k)
@@ -213,6 +214,7 @@ def main():
     plt.xlabel("k")
     plt.ylabel("f1 score for NB")
     plt.show()
+    # best is k = 3842
 
 
 if __name__ == "__main__":
