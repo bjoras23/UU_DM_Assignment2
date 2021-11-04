@@ -99,7 +99,7 @@ def random_forest():
             # nmin
             'min_samples_split' : np.arange(10,51,10).tolist(),
             # minleaf
-            'min_samples_leaf' : np.arange(5, 26, 5).tolist(),
+            'min_samples_leaf' : np.arange(1, 26, 4).tolist(),
             # nfeat
             'max_features' : [50, 187, 750, 3000, 12000, 48000],
             # m
