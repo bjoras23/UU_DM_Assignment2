@@ -201,18 +201,19 @@ def confusion_matrix(a, b):
 def main():
     start_time = time.time()
     x_train, y_train, x_test, y_test = read_data("./op_spam_v1.4")
+    # bigrams
     vectorizer = build_vectorizer(2, 0, 0.9)
     x_train_bigram = ngrams_train(x_train, vectorizer)
     x_test_bigram = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
-    # Multinomial Naive Bayes
+    # Multinomial Naive Bayes bigram
     x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train_bigram, y_train, x_test_bigram, 12000)
     accuracy_nb_bigram, precision_nb_bigram, recall_nb_bigram, f1_score_nb_bigram = classify_and_return_scores(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
-    # Logistic Regression
+    # Logistic Regression bigram
     accuracy_lg_bigram, precision_lg_bigram, recall_lg_bigram, f1_score_lg_bigram = classify_and_return_scores(logistic_regression, x_train_bigram, y_train, x_test_bigram, y_test)
-    # Classification tree
+    # Classification tree bigram
     accuracy_ct_bigram, precision_ct_bigram, recall_ct_bigram, f1_score_ct_bigram = classify_and_return_scores(classification_tree, x_train_bigram, y_train, x_test_bigram, y_test)
-    # Random forest
+    # Random forest bigram
     accuracies, precisions, recalls, f1_scores = [], [], [], []
     for _ in range(10):
         accuracy_rf, precision_rf, recall_rf, f1_score_rf = classify_and_return_scores(random_forest, x_train_bigram, y_train, x_test_bigram, y_test)
@@ -224,20 +225,13 @@ def main():
     precision_rf_bigram = sum(precisions) / len(precisions)
     recall_rf_bigram = sum(recalls) / len(recalls)
     f1_score_rf_bigram = sum(f1_scores) / len(f1_scores)
-    # visualize all scores on bigrams
-    visualize_scores_all_classifiers_bigram(
-        [accuracy_nb_bigram, precision_nb_bigram, recall_nb_bigram, f1_score_nb_bigram],
-        [accuracy_lg_bigram, precision_lg_bigram, recall_lg_bigram, f1_score_lg_bigram],
-        [accuracy_ct_bigram, precision_ct_bigram, recall_ct_bigram, f1_score_ct_bigram],
-        [accuracy_rf_bigram, precision_rf_bigram, recall_rf_bigram, f1_score_rf_bigram]
-        )
-    # visualize unigram vs bigram
+    # unigrams
     vectorizer = build_vectorizer(1, 0, 0.9)
     x_train_unigram = ngrams_train(x_train, vectorizer)
     x_test_unigram = ngrams_test(x_test, vectorizer)
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
     # Multinomial Naive Bayes unigram
-    x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train_unigram, y_train, x_test_unigram, 12000)
+    x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train_unigram, y_train, x_test_unigram, 3842)
     accuracy_nb_unigram, precision_nb_unigram, recall_nb_unigram, f1_score_nb_unigram = classify_and_return_scores(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
     # Logistic Regression unigram
     accuracy_lg_unigram, precision_lg_unigram, recall_lg_unigram, f1_score_lg_unigram = classify_and_return_scores(logistic_regression, x_train_unigram, y_train, x_test_unigram, y_test)
@@ -295,6 +289,13 @@ def main():
         f1_score_rf_unigram,
         f1_score_rf_bigram
     )
+    # visualize the best against each other
+    visualize_scores_all_classifiers_bigram(
+        [accuracy_nb_unigram, precision_nb_unigram, recall_nb_unigram, f1_score_nb_unigram],
+        [accuracy_lg_bigram, precision_lg_bigram, recall_lg_bigram, f1_score_lg_bigram],
+        [accuracy_ct_bigram, precision_ct_bigram, recall_ct_bigram, f1_score_ct_bigram],
+        [accuracy_rf_bigram, precision_rf_bigram, recall_rf_bigram, f1_score_rf_bigram]
+        )
     
 
 
@@ -370,7 +371,7 @@ def uni_vs_bi(accuracy_uni, accuracy_bi, precision_uni, precision_bi, recall_uni
     
     plt.xlabel("Measure")
     plt.ylabel("Score")
-    plt.xticks(bar1 + w, labels)
+    plt.xticks(bar1 + w / 2, labels)
     plt.ylim(0.5, 0.95)
     plt.legend()
     plt.title = "Unigram vs Bigram"
