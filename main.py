@@ -196,9 +196,11 @@ def confusion_matrix(a, b):
     print(f'Confusion matrix')
     print(f'ab: {ab}     a_: {a_}')
     print(f'b_: {b_}     TN: {TN}')
+    return ab, a_, b_, TN
 
 
 def main():
+    # computing confusion matrices for uni vs bigram
     start_time = time.time()
     x_train, y_train, x_test, y_test = read_data("./op_spam_v1.4")
     # bigrams
@@ -208,23 +210,13 @@ def main():
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
     # Multinomial Naive Bayes bigram
     x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train_bigram, y_train, x_test_bigram, 12000)
-    accuracy_nb_bigram, precision_nb_bigram, recall_nb_bigram, f1_score_nb_bigram = classify_and_return_scores(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
+    correctness_nb_bigram, _ = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
     # Logistic Regression bigram
-    accuracy_lg_bigram, precision_lg_bigram, recall_lg_bigram, f1_score_lg_bigram = classify_and_return_scores(logistic_regression, x_train_bigram, y_train, x_test_bigram, y_test)
+    correctness_lg_bigram, _ = classify(logistic_regression, x_train_bigram, y_train, x_test_bigram, y_test)
     # Classification tree bigram
-    accuracy_ct_bigram, precision_ct_bigram, recall_ct_bigram, f1_score_ct_bigram = classify_and_return_scores(classification_tree, x_train_bigram, y_train, x_test_bigram, y_test)
+    correctness_ct_bigram, _ = classify(classification_tree, x_train_bigram, y_train, x_test_bigram, y_test)
     # Random forest bigram
-    accuracies, precisions, recalls, f1_scores = [], [], [], []
-    for _ in range(10):
-        accuracy_rf, precision_rf, recall_rf, f1_score_rf = classify_and_return_scores(random_forest, x_train_bigram, y_train, x_test_bigram, y_test)
-        accuracies.append(accuracy_rf)
-        precisions.append(precision_rf)
-        recalls.append(recall_rf)
-        f1_scores.append(f1_score_rf)
-    accuracy_rf_bigram = sum(accuracies) / len(accuracies)
-    precision_rf_bigram = sum(precisions) / len(precisions)
-    recall_rf_bigram = sum(recalls) / len(recalls)
-    f1_score_rf_bigram = sum(f1_scores) / len(f1_scores)
+    correctness_rf_bigram, _ = classify(random_forest, x_train_bigram, y_train, x_test_bigram, y_test)
     # unigrams
     vectorizer = build_vectorizer(1, 0, 0.9)
     x_train_unigram = ngrams_train(x_train, vectorizer)
@@ -232,70 +224,145 @@ def main():
     print(f"--- pre-processing time {time.time() - start_time} seconds ---")
     # Multinomial Naive Bayes unigram
     x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train_unigram, y_train, x_test_unigram, 3842)
-    accuracy_nb_unigram, precision_nb_unigram, recall_nb_unigram, f1_score_nb_unigram = classify_and_return_scores(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
+    correctness_nb_unigram, _ = classify(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
     # Logistic Regression unigram
-    accuracy_lg_unigram, precision_lg_unigram, recall_lg_unigram, f1_score_lg_unigram = classify_and_return_scores(logistic_regression, x_train_unigram, y_train, x_test_unigram, y_test)
+    correctness_lg_unigram, _ = classify(logistic_regression, x_train_unigram, y_train, x_test_unigram, y_test)
     # Classification tree unigram
-    accuracy_ct_unigram, precision_ct_unigram, recall_ct_unigram, f1_score_ct_unigram = classify_and_return_scores(classification_tree, x_train_unigram, y_train, x_test_unigram, y_test)
+    correctness_ct_unigram, _ = classify(classification_tree, x_train_unigram, y_train, x_test_unigram, y_test)
     # Random forest unigram
-    accuracies, precisions, recalls, f1_scores = [], [], [], []
+    correctness_rf_unigram, _ = classify(random_forest, x_train_unigram, y_train, x_test_unigram, y_test)
+    # printing the confusion matrices
+    # print("---nb bigram vs unigram---")
+    # confusion_matrix(correctness_nb_bigram, correctness_nb_unigram)
+    # print("---lg bigram vs unigram78---")
+    # confusion_matrix(correctness_lg_bigram, correctness_lg_unigram)
+    # print("---ct bigram vs unigram---")
+    # confusion_matrix(correctness_ct_bigram, correctness_ct_unigram)
+    # print("---rf bigram vs unigram---")
+    # confusion_matrix(correctness_rf_bigram, correctness_rf_unigram)
+    print("---nb vs rf---")
+    ab_values, a_values, b_values, TN_values = [], [], [], []
     for _ in range(10):
-        accuracy_rf, precision_rf, recall_rf, f1_score_rf = classify_and_return_scores(random_forest, x_train_unigram, y_train, x_test_unigram, y_test)
-        accuracies.append(accuracy_rf)
-        precisions.append(precision_rf)
-        recalls.append(recall_rf)
-        f1_scores.append(f1_score_rf)
-    accuracy_rf_unigram = sum(accuracies) / len(accuracies)
-    precision_rf_unigram = sum(precisions) / len(precisions)
-    recall_rf_unigram = sum(recalls) / len(recalls)
-    f1_score_rf_unigram = sum(f1_scores) / len(f1_scores)
-    # visualize uni vs bigram
-    uni_vs_bi(
-        accuracy_nb_unigram,
-        accuracy_nb_bigram,
-        precision_nb_unigram,
-        precision_nb_bigram,
-        recall_nb_unigram,
-        recall_nb_bigram,
-        f1_score_nb_unigram,
-        f1_score_nb_bigram)
-    uni_vs_bi(
-        accuracy_lg_unigram,
-        accuracy_lg_bigram,
-        precision_lg_unigram,
-        precision_lg_bigram,
-        recall_lg_unigram,
-        recall_lg_bigram,
-        f1_score_lg_unigram,
-        f1_score_lg_bigram   
-    )
-    uni_vs_bi(
-        accuracy_ct_unigram,
-        accuracy_ct_bigram,
-        precision_ct_unigram,
-        precision_ct_bigram,
-        recall_ct_unigram,
-        recall_ct_bigram,
-        f1_score_ct_unigram,
-        f1_score_ct_bigram
-    )
-    uni_vs_bi(
-        accuracy_rf_unigram,
-        accuracy_rf_bigram,
-        precision_rf_unigram,
-        precision_rf_bigram,
-        recall_rf_unigram,
-        recall_rf_bigram,
-        f1_score_rf_unigram,
-        f1_score_rf_bigram
-    )
-    # visualize the best against each other
-    visualize_scores_all_classifiers_bigram(
-        [accuracy_nb_unigram, precision_nb_unigram, recall_nb_unigram, f1_score_nb_unigram],
-        [accuracy_lg_bigram, precision_lg_bigram, recall_lg_bigram, f1_score_lg_bigram],
-        [accuracy_ct_bigram, precision_ct_bigram, recall_ct_bigram, f1_score_ct_bigram],
-        [accuracy_rf_bigram, precision_rf_bigram, recall_rf_bigram, f1_score_rf_bigram]
-        )
+        ab, a_, b_, TN = confusion_matrix(correctness_nb_unigram, correctness_rf_bigram)
+        ab_values.append(ab)
+        a_values.append(a_)
+        b_values.append(b_)
+        TN_values.append(TN)
+        correctness_rf_bigram, _ = classify(random_forest, x_train_bigram, y_train, x_test_bigram, y_test)
+    print(f'---Averaged confusion matrix for nb vs rf---')
+    print(f'ab: {int(sum(ab_values) / len(ab_values))}     a_: {int(sum(a_values) / len(a_values))}')
+    print(f'b_: {int(sum(b_values) / len(b_values))}     TN: {int(sum(TN_values) / len(TN_values))}')
+    print("---lg vs rf---")
+    ab_values, a_values, b_values, TN_values = [], [], [], []
+    for _ in range(10):
+        ab, a_, b_, TN = confusion_matrix(correctness_lg_bigram, correctness_rf_bigram)
+        ab_values.append(ab)
+        a_values.append(a_)
+        b_values.append(b_)
+        TN_values.append(TN)
+        correctness_rf_bigram, _ = classify(random_forest, x_train_bigram, y_train, x_test_bigram, y_test)
+    print(f'---Averaged confusion matrix for lg vs rf---')
+    print(f'ab: {int(sum(ab_values) / len(ab_values))}     a_: {int(sum(a_values) / len(a_values))}')
+    print(f'b_: {int(sum(b_values) / len(b_values))}     TN: {int(sum(TN_values) / len(TN_values))}')
+
+
+    # start_time = time.time()
+    # x_train, y_train, x_test, y_test = read_data("./op_spam_v1.4")
+    # # bigrams
+    # vectorizer = build_vectorizer(2, 0, 0.9)
+    # x_train_bigram = ngrams_train(x_train, vectorizer)
+    # x_test_bigram = ngrams_test(x_test, vectorizer)
+    # print(f"--- pre-processing time {time.time() - start_time} seconds ---")
+    # # Multinomial Naive Bayes bigram
+    # x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train_bigram, y_train, x_test_bigram, 12000)
+    # accuracy_nb_bigram, precision_nb_bigram, recall_nb_bigram, f1_score_nb_bigram = classify_and_return_scores(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
+    # # Logistic Regression bigram
+    # accuracy_lg_bigram, precision_lg_bigram, recall_lg_bigram, f1_score_lg_bigram = classify_and_return_scores(logistic_regression, x_train_bigram, y_train, x_test_bigram, y_test)
+    # # Classification tree bigram
+    # accuracy_ct_bigram, precision_ct_bigram, recall_ct_bigram, f1_score_ct_bigram = classify_and_return_scores(classification_tree, x_train_bigram, y_train, x_test_bigram, y_test)
+    # # Random forest bigram
+    # accuracies, precisions, recalls, f1_scores = [], [], [], []
+    # for _ in range(10):
+    #     accuracy_rf, precision_rf, recall_rf, f1_score_rf = classify_and_return_scores(random_forest, x_train_bigram, y_train, x_test_bigram, y_test)
+    #     accuracies.append(accuracy_rf)
+    #     precisions.append(precision_rf)
+    #     recalls.append(recall_rf)
+    #     f1_scores.append(f1_score_rf)
+    # accuracy_rf_bigram = sum(accuracies) / len(accuracies)
+    # precision_rf_bigram = sum(precisions) / len(precisions)
+    # recall_rf_bigram = sum(recalls) / len(recalls)
+    # f1_score_rf_bigram = sum(f1_scores) / len(f1_scores)
+    # # unigrams
+    # vectorizer = build_vectorizer(1, 0, 0.9)
+    # x_train_unigram = ngrams_train(x_train, vectorizer)
+    # x_test_unigram = ngrams_test(x_test, vectorizer)
+    # print(f"--- pre-processing time {time.time() - start_time} seconds ---")
+    # # Multinomial Naive Bayes unigram
+    # x_train_nb, x_test_nb = adapt_dataset_to_top_k(x_train_unigram, y_train, x_test_unigram, 3842)
+    # accuracy_nb_unigram, precision_nb_unigram, recall_nb_unigram, f1_score_nb_unigram = classify_and_return_scores(multinomial_NB, x_train_nb, y_train, x_test_nb, y_test)
+    # # Logistic Regression unigram
+    # accuracy_lg_unigram, precision_lg_unigram, recall_lg_unigram, f1_score_lg_unigram = classify_and_return_scores(logistic_regression, x_train_unigram, y_train, x_test_unigram, y_test)
+    # # Classification tree unigram
+    # accuracy_ct_unigram, precision_ct_unigram, recall_ct_unigram, f1_score_ct_unigram = classify_and_return_scores(classification_tree, x_train_unigram, y_train, x_test_unigram, y_test)
+    # # Random forest unigram
+    # accuracies, precisions, recalls, f1_scores = [], [], [], []
+    # for _ in range(10):
+    #     accuracy_rf, precision_rf, recall_rf, f1_score_rf = classify_and_return_scores(random_forest, x_train_unigram, y_train, x_test_unigram, y_test)
+    #     accuracies.append(accuracy_rf)
+    #     precisions.append(precision_rf)
+    #     recalls.append(recall_rf)
+    #     f1_scores.append(f1_score_rf)
+    # accuracy_rf_unigram = sum(accuracies) / len(accuracies)
+    # precision_rf_unigram = sum(precisions) / len(precisions)
+    # recall_rf_unigram = sum(recalls) / len(recalls)
+    # f1_score_rf_unigram = sum(f1_scores) / len(f1_scores)
+    # # visualize uni vs bigram
+    # uni_vs_bi(
+    #     accuracy_nb_unigram,
+    #     accuracy_nb_bigram,
+    #     precision_nb_unigram,
+    #     precision_nb_bigram,
+    #     recall_nb_unigram,
+    #     recall_nb_bigram,
+    #     f1_score_nb_unigram,
+    #     f1_score_nb_bigram)
+    # uni_vs_bi(
+    #     accuracy_lg_unigram,
+    #     accuracy_lg_bigram,
+    #     precision_lg_unigram,
+    #     precision_lg_bigram,
+    #     recall_lg_unigram,
+    #     recall_lg_bigram,
+    #     f1_score_lg_unigram,
+    #     f1_score_lg_bigram   
+    # )
+    # uni_vs_bi(
+    #     accuracy_ct_unigram,
+    #     accuracy_ct_bigram,
+    #     precision_ct_unigram,
+    #     precision_ct_bigram,
+    #     recall_ct_unigram,
+    #     recall_ct_bigram,
+    #     f1_score_ct_unigram,
+    #     f1_score_ct_bigram
+    # )
+    # uni_vs_bi(
+    #     accuracy_rf_unigram,
+    #     accuracy_rf_bigram,
+    #     precision_rf_unigram,
+    #     precision_rf_bigram,
+    #     recall_rf_unigram,
+    #     recall_rf_bigram,
+    #     f1_score_rf_unigram,
+    #     f1_score_rf_bigram
+    # )
+    # # visualize the best against each other
+    # visualize_scores_all_classifiers_bigram(
+    #     [accuracy_nb_unigram, precision_nb_unigram, recall_nb_unigram, f1_score_nb_unigram],
+    #     [accuracy_lg_bigram, precision_lg_bigram, recall_lg_bigram, f1_score_lg_bigram],
+    #     [accuracy_ct_bigram, precision_ct_bigram, recall_ct_bigram, f1_score_ct_bigram],
+    #     [accuracy_rf_bigram, precision_rf_bigram, recall_rf_bigram, f1_score_rf_bigram]
+    #     )
     
 
 
